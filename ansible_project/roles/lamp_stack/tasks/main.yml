@@ -1,0 +1,72 @@
+  - name: Install linux apache
+    yum:
+      name: httpd
+      state: installed
+  - name: start and enable linux apache
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+  - name: Install MySQL
+    yum:
+      name: mysql-server
+      state: latest
+  - name: start and enable MySQL
+    service:
+      name: mysqld
+      state: started
+      enabled: yes
+  - name: Install EPEL repository
+    yum:
+      name: epel-release
+      state: latest
+  - name: Install Remi repository
+    get_url:
+      url: http://rpms.famillecollet.com/enterprise/remi-release-7.9.rpm
+        #dest: /tmp/remi-release-7.9.rpm
+      dest: /tmp/remi-release-7.9-5.el7.remi.noarch
+  - name: Install Remi repository package
+    yum:
+      name: /tmp/remi-release-7.9-5.el7.remi.noarch
+      state: present
+  - name: Install PHP and required modules
+    yum:
+      name: "{{item}}"
+      state: latest
+    with_items:
+    - php
+    - php-mysqlnd
+    - php-gd
+#   - php-xmlrpc
+    - php-mbstring
+    - php-common
+    - php-opcache
+    - php-cli
+    - php-pdo
+
+  - name: firewalld enabled and running
+    service:
+      name: firewalld
+      state: started
+      enabled: yes
+  - name: firewalld permits http service
+    firewalld:
+      service: http
+        #port: 80/tcp
+      state: enabled
+      immediate: yes
+      permanent: true
+    notify: 
+    - reload service firewalld
+  - name: restart httpd_service
+    service:
+      name: httpd
+      state: restarted
+  - name: Template index.php
+    template:
+      src: index.php.j2
+      dest: /var/www/html/index.php
+  - name: test the webpage/website we have setup
+    uri:
+      url: http://{{ansible_hostname}}/index.php
+      status_code: 200
